@@ -12,7 +12,7 @@
     <script type="module">
         // Firebase SDK imports for Firebase v9+ (modular approach)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, get, set, push, remove, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -33,8 +33,38 @@
         const menuTableBody = document.getElementById('menu-table-body');
         const addDishForm = document.getElementById('add-dish-form');
         const addDishModal = new bootstrap.Modal(document.getElementById('addDishModal'));
+        const categorySelect = document.getElementById('category'); // Dropdown for categories
+        const addCategoryInput = document.getElementById('add-category-input'); // Input for new category
 
         let editingDishId = null; // This will hold the ID of the dish being edited
+
+        // Load Categories
+        function loadCategories() {
+            const categoriesRef = ref(database, 'categories');
+            get(categoriesRef).then(snapshot => {
+                const categories = snapshot.val();
+                if (categories) {
+                    categorySelect.innerHTML = ''; // Clear existing options
+                    Object.keys(categories).forEach(key => {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = categories[key];
+                        categorySelect.appendChild(option);
+                    });
+                }
+            }).catch(error => console.error("Error loading categories:", error));
+        }
+
+        // Add New Category
+        function addCategory(categoryName) {
+            const categoriesRef = ref(database, 'categories');
+            set(categoriesRef, {
+                [categoryName]: categoryName
+            }).then(() => {
+                loadCategories(); // Refresh the category dropdown
+                addCategoryInput.value = ''; // Clear the input field
+            }).catch(error => console.error("Error adding category:", error));
+        }
 
         // Load Menu Items
         function loadMenuItems() {
@@ -64,13 +94,13 @@
                 }
             }).catch(error => console.error("Error loading menu items:", error));
         }
-        
+
         // Add or Edit Dish
         addDishForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const dishName = document.getElementById('dish-name').value;
-            const category = document.getElementById('category').value;
+            const category = categorySelect.value;
             const price = document.getElementById('price').value;
             const imageUrl = document.getElementById('image-url').value;
 
@@ -112,7 +142,7 @@
                 get(dishRef).then(snapshot => {
                     const dish = snapshot.val();
                     document.getElementById('dish-name').value = dish.DishName;
-                    document.getElementById('category').value = dish.Category;
+                    categorySelect.value = dish.Category;
                     document.getElementById('price').value = dish.Price;
                     document.getElementById('image-url').value = dish.ImageURL;
 
@@ -130,8 +160,21 @@
             }
         });
 
-        // Load items on page load
-        loadMenuItems();
+        // Add Category Button Event
+        document.getElementById('add-category-btn').addEventListener('click', function() {
+            const categoryName = addCategoryInput.value;
+            if (categoryName) {
+                addCategory(categoryName); // Call the function to add the new category
+            } else {
+                alert('Please enter a category name.');
+            }
+        });
+
+        // Load items and categories on page load
+        window.onload = function() {
+            loadCategories();
+            loadMenuItems();
+        };
     </script>
 
     <!-- Bootstrap and Popper JS -->
@@ -191,23 +234,29 @@
                             </div>
                             <div class="mb-3">
                                 <label for="category" class="form-label">Category</label>
-                                <input type="text" class="form-control" id="category" required>
+                                <select id="category" class="form-control">
+                                    <!-- Categories will be populated here -->
+                                </select>
+                                <br>
+                                <label for="add-category-input" class="form-label">Add New Category</label>
+                                <input type="text" id="add-category-input" class="form-control" placeholder="New Category">
+                                <button type="button" class="btn btn-info mt-2" id="add-category-btn">Add Category</button>
                             </div>
                             <div class="mb-3">
-                                <label for="price" class="form-label">Price (₹)</label>
+                                <label for="price" class="form-label">Price</label>
                                 <input type="number" class="form-control" id="price" required>
                             </div>
                             <div class="mb-3">
                                 <label for="image-url" class="form-label">Image URL</label>
-                                <input type="url" class="form-control" id="image-url" required>
+                                <input type="text" class="form-control" id="image-url" required>
                             </div>
-                            <button type="submit" class="btn btn-success">Save Changes</button>
+                            <button type="submit" class="btn btn-primary">Save Dish</button>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
+    
 </body>
 </html>
