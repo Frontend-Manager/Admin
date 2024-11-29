@@ -9,76 +9,81 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Firebase JS SDK (v9+ Modular) -->
-    <script type="module">
-        // Firebase SDK imports for Firebase v9+ (modular approach)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+   <script type="module">
+    // Firebase SDK imports for Firebase v9+ (modular approach)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyC9JZSP50VoMxGI7eNGkW3OfwEo8omxVVk",
-            authDomain: "myproject-8ccb0.firebaseapp.com",
-            projectId: "myproject-8ccb0",
-            storageBucket: "myproject-8ccb0.firebasestorage.app",
-            messagingSenderId: "525228279287",
-            appId: "1:525228279287:web:a3a58f36b9387bc2029af2",
-            measurementId: "G-BR0YZY6ZPV"
-        };
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC9JZSP50VoMxGI7eNGkW3OfwEo8omxVVk",
+        authDomain: "myproject-8ccb0.firebaseapp.com",
+        projectId: "myproject-8ccb0",
+        storageBucket: "myproject-8ccb0.firebasestorage.app",
+        messagingSenderId: "525228279287",
+        appId: "1:525228279287:web:a3a58f36b9387bc2029af2",
+        measurementId: "G-BR0YZY6ZPV"
+    };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
-        // DOM Elements
-        const menuTableBody = document.getElementById('menu-table-body');
-        const addDishForm = document.getElementById('add-dish-form');
-        const addDishModal = new bootstrap.Modal(document.getElementById('addDishModal'));
-        const categorySelect = document.getElementById('category'); // Dropdown for categories
-        const addCategoryInput = document.getElementById('add-category-input'); // Input for new category
+    // DOM Elements
+    const menuTableBody = document.getElementById('menu-table-body');
+    const addDishForm = document.getElementById('add-dish-form');
+    const addDishModal = new bootstrap.Modal(document.getElementById('addDishModal'));
+    const categorySelect = document.getElementById('category'); // Dropdown for categories
+    const addCategoryInput = document.getElementById('add-category-input'); // Input for new category
 
-        let editingDishId = null; // This will hold the ID of the dish being edited
+    let editingDishId = null; // This will hold the ID of the dish being edited
 
-        // Load Categories
-        function loadCategories() {
-            const categoriesRef = ref(database, 'categories');
-            get(categoriesRef).then(snapshot => {
-                const categories = snapshot.val();
-                if (categories) {
-                    categorySelect.innerHTML = ''; // Clear existing options
-                    Object.keys(categories).forEach(key => {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = categories[key];
-                        categorySelect.appendChild(option);
-                    });
-                }
-            }).catch(error => console.error("Error loading categories:", error));
-        }
+    // Load Categories
+    function loadCategories() {
+        const categoriesRef = ref(database, 'categories');
+        get(categoriesRef).then(snapshot => {
+            const categories = snapshot.val();
+            if (categories) {
+                categorySelect.innerHTML = ''; // Clear existing options
+                Object.keys(categories).forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = categories[key];
+                    categorySelect.appendChild(option);
+                });
+            }
+        }).catch(error => console.error("Error loading categories:", error));
+    }
 
-        // Add New Category
-        function addCategory(categoryName) {
-            const categoriesRef = ref(database, 'categories');
-            set(categoriesRef, {
-                [categoryName]: categoryName
-            }).then(() => {
-                loadCategories(); // Refresh the category dropdown
-                addCategoryInput.value = ''; // Clear the input field
-            }).catch(error => console.error("Error adding category:", error));
-        }
+    // Add New Category (Updated)
+    function addCategory(categoryName) {
+        const categoriesRef = ref(database, 'categories');
+        
+        // Use 'update' instead of 'set' to avoid overwriting the entire 'categories' node
+        const newCategory = {};
+        newCategory[categoryName] = categoryName; // Add the new category
 
-        // Load Menu Items
-        function loadMenuItems() {
-            const menuRef = ref(database, 'menu');
-            get(menuRef).then(snapshot => {
-                const menuItems = snapshot.val();
-                menuTableBody.innerHTML = '';
-                
-                if (menuItems) {
-                    Object.keys(menuItems).forEach(key => {
-                        const item = menuItems[key];
+        update(categoriesRef, newCategory).then(() => {
+            loadCategories(); // Refresh the category dropdown
+            addCategoryInput.value = ''; // Clear the input field
+        }).catch(error => console.error("Error adding category:", error));
+    }
+
+    // Load Menu Items (with optional search query)
+    function loadMenuItems(searchQuery = '') {
+        const menuRef = ref(database, 'menu');
+        get(menuRef).then(snapshot => {
+            const menuItems = snapshot.val();
+            menuTableBody.innerHTML = ''; // Clear existing table rows
+            
+            if (menuItems) {
+                Object.keys(menuItems).forEach(key => {
+                    const item = menuItems[key];
+
+                    // Only display items that match the search query (case-insensitive)
+                    if (item.DishName.toLowerCase().includes(searchQuery.toLowerCase())) {
                         const row = document.createElement('tr');
-                        
-                        row.innerHTML = `
+                        row.innerHTML = ` 
                             <td>${item.DishName}</td>
                             <td>${item.Category}</td>
                             <td>₹${item.Price}</td>
@@ -88,93 +93,101 @@
                                 <button class="btn btn-danger btn-sm delete-btn" data-id="${key}">Delete</button>
                             </td>
                         `;
-                        
                         menuTableBody.appendChild(row);
-                    });
-                }
-            }).catch(error => console.error("Error loading menu items:", error));
+                    }
+                });
+            }
+        }).catch(error => console.error("Error loading menu items:", error));
+    }
+
+    // Search Menu Items based on input from search bar
+    function searchMenuItems() {
+        const searchQuery = document.getElementById('search-bar').value;
+        loadMenuItems(searchQuery);  // Reload menu items with the search query
+    }
+
+    // Add or Edit Dish
+    addDishForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const dishName = document.getElementById('dish-name').value;
+        const category = categorySelect.value;
+        const price = document.getElementById('price').value;
+        const imageUrl = document.getElementById('image-url').value;
+
+        if (editingDishId) {
+            // Edit dish
+            update(ref(database, 'menu/' + editingDishId), {
+                DishName: dishName,
+                Category: category,
+                Price: price,
+                ImageURL: imageUrl
+            }).then(() => {
+                loadMenuItems();  // Refresh the menu items
+                addDishModal.hide();
+                addDishForm.reset();
+                editingDishId = null; // Clear editing dish ID
+            });
+        } else {
+            // Add new dish
+            const newDishRef = push(ref(database, 'menu'));
+            set(newDishRef, {
+                DishName: dishName,
+                Category: category,
+                Price: price,
+                ImageURL: imageUrl
+            }).then(() => {
+                loadMenuItems();  // Refresh the menu items
+                addDishModal.hide();
+                addDishForm.reset();
+            });
+        }
+    });
+
+    // Edit Dish
+    menuTableBody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('edit-btn')) {
+            const dishId = e.target.getAttribute('data-id');
+            const dishRef = ref(database, 'menu/' + dishId);
+            
+            get(dishRef).then(snapshot => {
+                const dish = snapshot.val();
+                document.getElementById('dish-name').value = dish.DishName;
+                categorySelect.value = dish.Category;
+                document.getElementById('price').value = dish.Price;
+                document.getElementById('image-url').value = dish.ImageURL;
+
+                editingDishId = dishId; // Set the ID of the dish being edited
+                addDishModal.show(); // Open the modal
+            }).catch(error => console.error("Error editing dish:", error));
         }
 
-        // Add or Edit Dish
-        addDishForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const dishName = document.getElementById('dish-name').value;
-            const category = categorySelect.value;
-            const price = document.getElementById('price').value;
-            const imageUrl = document.getElementById('image-url').value;
+        // Delete Dish
+        if (e.target.classList.contains('delete-btn')) {
+            const dishId = e.target.getAttribute('data-id');
+            remove(ref(database, 'menu/' + dishId)).then(() => {
+                loadMenuItems();  // Refresh the menu items after deletion
+            });
+        }
+    });
 
-            if (editingDishId) {
-                // Edit dish
-                update(ref(database, 'menu/' + editingDishId), {
-                    DishName: dishName,
-                    Category: category,
-                    Price: price,
-                    ImageURL: imageUrl
-                }).then(() => {
-                    loadMenuItems();
-                    addDishModal.hide();
-                    addDishForm.reset();
-                    editingDishId = null; // Clear editing dish ID
-                });
-            } else {
-                // Add new dish
-                const newDishRef = push(ref(database, 'menu'));
-                set(newDishRef, {
-                    DishName: dishName,
-                    Category: category,
-                    Price: price,
-                    ImageURL: imageUrl
-                }).then(() => {
-                    loadMenuItems();
-                    addDishModal.hide();
-                    addDishForm.reset();
-                });
-            }
-        });
+    // Add Category Button Event
+    document.getElementById('add-category-btn').addEventListener('click', function() {
+        const categoryName = addCategoryInput.value;
+        if (categoryName) {
+            addCategory(categoryName); // Call the function to add the new category
+        } else {
+            alert('Please enter a category name.');
+        }
+    });
 
-        // Edit Dish
-        menuTableBody.addEventListener('click', function(e) {
-            if (e.target.classList.contains('edit-btn')) {
-                const dishId = e.target.getAttribute('data-id');
-                const dishRef = ref(database, 'menu/' + dishId);
-                
-                get(dishRef).then(snapshot => {
-                    const dish = snapshot.val();
-                    document.getElementById('dish-name').value = dish.DishName;
-                    categorySelect.value = dish.Category;
-                    document.getElementById('price').value = dish.Price;
-                    document.getElementById('image-url').value = dish.ImageURL;
-
-                    editingDishId = dishId; // Set the ID of the dish being edited
-                    addDishModal.show(); // Open the modal
-                }).catch(error => console.error("Error editing dish:", error));
-            }
-
-            // Delete Dish
-            if (e.target.classList.contains('delete-btn')) {
-                const dishId = e.target.getAttribute('data-id');
-                remove(ref(database, 'menu/' + dishId)).then(() => {
-                    loadMenuItems();
-                });
-            }
-        });
-
-        // Add Category Button Event
-        document.getElementById('add-category-btn').addEventListener('click', function() {
-            const categoryName = addCategoryInput.value;
-            if (categoryName) {
-                addCategory(categoryName); // Call the function to add the new category
-            } else {
-                alert('Please enter a category name.');
-            }
-        });
-
-        // Load items and categories on page load
-        window.onload = function() {
-            loadCategories();
-            loadMenuItems();
-        };
+    // Load items and categories on page load
+    window.onload = function() {
+        loadCategories();
+        loadMenuItems();  // Load all items initially
+    };
+</script>
+        
     </script>
 
     <!-- Bootstrap and Popper JS -->
@@ -183,16 +196,19 @@
 
 </head>
 <body>
-
+    <br>
     <div class="container admin-panel">
         <div class="row">
             <div class="col-md-12">
-                <h2 class="text-center mb-4">Admin Panel</h2>
+                <img src="images/FZBillinG Logo.png" style="height: 50px;">
                 
                 <!-- Add Dish Button -->
                 <button class="btn btn-primary add-dish-btn" id="add-dish-btn" data-bs-toggle="modal" data-bs-target="#addDishModal">Add Dish</button>
                 <button class="btn btn-primary add-dish-btn" onclick="window.location.href='mktad.html'">MKT</button>
-
+                <div class="mb-3">
+                    <input type="text" id="search-bar" class="form-control" placeholder="Search for a dish..." onkeyup="searchMenuItems()">
+                </div>
+                
                 <!-- Menu Table -->
                 <div class="card mt-4">
                     <div class="card-header bg-primary text-white">
@@ -210,7 +226,7 @@
                                 </tr>
                             </thead>
                             <tbody id="menu-table-body">
-                                <!-- Menu items will be inserted here -->
+                                <!-- Menu items will be loaded here dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -218,37 +234,36 @@
             </div>
         </div>
 
-        <!-- Add/Edit Dish Modal -->
+        <!-- Add Dish Modal -->
         <div class="modal fade" id="addDishModal" tabindex="-1" aria-labelledby="addDishModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addDishModalLabel">Add/Edit Dish</h5>
+                        <h5 class="modal-title" id="addDishModalLabel">Add Dish</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form id="add-dish-form">
                             <div class="mb-3">
                                 <label for="dish-name" class="form-label">Dish Name</label>
-                                <input type="text" class="form-control" id="dish-name" required>
+                                <input type="text" id="dish-name" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label for="category" class="form-label">Category</label>
-                                <select id="category" class="form-control">
-                                    <!-- Categories will be populated here -->
+                                <select id="category" class="form-control" required>
+                                    <!-- Categories will be loaded here dynamically -->
                                 </select>
                                 <br>
-                                <label for="add-category-input" class="form-label">Add New Category</label>
-                                <input type="text" id="add-category-input" class="form-control" placeholder="New Category">
-                                <button type="button" class="btn btn-info mt-2" id="add-category-btn">Add Category</button>
+                                <input type="text" id="add-category-input" class="form-control" placeholder="Add New Category" />
+                                <button type="button" class="btn btn-success" id="add-category-btn">Add Category</button>
                             </div>
                             <div class="mb-3">
                                 <label for="price" class="form-label">Price</label>
-                                <input type="number" class="form-control" id="price" required>
+                                <input type="text" id="price" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label for="image-url" class="form-label">Image URL</label>
-                                <input type="text" class="form-control" id="image-url" required>
+                                <input type="text" id="image-url" class="form-control" required>
                             </div>
                             <button type="submit" class="btn btn-primary">Save Dish</button>
                         </form>
@@ -257,6 +272,5 @@
             </div>
         </div>
     </div>
-    
 </body>
 </html>
