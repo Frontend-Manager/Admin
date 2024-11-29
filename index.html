@@ -144,32 +144,47 @@
         }
     });
 
-    // Edit Dish
-    menuTableBody.addEventListener('click', function(e) {
-        if (e.target.classList.contains('edit-btn')) {
-            const dishId = e.target.getAttribute('data-id');
-            const dishRef = ref(database, 'menu/' + dishId);
-            
-            get(dishRef).then(snapshot => {
-                const dish = snapshot.val();
-                document.getElementById('dish-name').value = dish.DishName;
-                categorySelect.value = dish.Category;
-                document.getElementById('price').value = dish.Price;
-                document.getElementById('image-url').value = dish.ImageURL;
 
-                editingDishId = dishId; // Set the ID of the dish being edited
-                addDishModal.show(); // Open the modal
-            }).catch(error => console.error("Error editing dish:", error));
-        }
 
-        // Delete Dish
-        if (e.target.classList.contains('delete-btn')) {
-            const dishId = e.target.getAttribute('data-id');
-            remove(ref(database, 'menu/' + dishId)).then(() => {
-                loadMenuItems();  // Refresh the menu items after deletion
-            });
-        }
-    });
+let dishToDeleteId = null;
+
+// Event listener for Edit and Delete buttons in the menu table
+menuTableBody.addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-btn')) {
+        dishToDeleteId = e.target.getAttribute('data-id'); // Get the dish ID
+        
+        // Initialize or retrieve the modal instance dynamically
+        const modalElement = document.getElementById('deleteConfirmationModal');
+        const deleteConfirmationModal = bootstrap.Modal.getOrCreateInstance(modalElement); // Use getOrCreateInstance to handle re-initialization
+        deleteConfirmationModal.show(); // Show the modal
+    }
+});
+
+// Confirm deletion
+document.getElementById('confirm-delete-btn').addEventListener('click', function () {
+    if (dishToDeleteId) {
+        remove(ref(database, 'menu/' + dishToDeleteId))
+            .then(() => {
+                loadMenuItems(); // Refresh the menu items after deletion
+                const modalElement = document.getElementById('deleteConfirmationModal');
+                const deleteConfirmationModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                deleteConfirmationModal.hide(); // Close the modal
+                dishToDeleteId = null; // Reset the stored dish ID
+            })
+            .catch(error => console.error("Error deleting dish:", error));
+    }
+});
+
+// Cancel deletion
+document.getElementById('cancel-delete-btn').addEventListener('click', function () {
+    const modalElement = document.getElementById('deleteConfirmationModal');
+    const deleteConfirmationModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    deleteConfirmationModal.hide(); // Close the modal without taking action
+});
+
+
+
+
 
     // Add Category Button Event
     document.getElementById('add-category-btn').addEventListener('click', function() {
@@ -188,7 +203,7 @@
     };
 </script>
         
-    </script>
+    
 
     <!-- Bootstrap and Popper JS -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
@@ -272,5 +287,26 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this dish?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-delete-btn">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+
+
 </body>
 </html>
