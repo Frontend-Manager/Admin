@@ -148,17 +148,45 @@
 
 let dishToDeleteId = null;
 
-// Event listener for Edit and Delete buttons in the menu table
 menuTableBody.addEventListener('click', function (e) {
-    if (e.target.classList.contains('delete-btn')) {
-        dishToDeleteId = e.target.getAttribute('data-id'); // Get the dish ID
-        
-        // Initialize or retrieve the modal instance dynamically
-        const modalElement = document.getElementById('deleteConfirmationModal');
-        const deleteConfirmationModal = bootstrap.Modal.getOrCreateInstance(modalElement); // Use getOrCreateInstance to handle re-initialization
-        deleteConfirmationModal.show(); // Show the modal
+    // Handle Edit button click
+    if (e.target.classList.contains('edit-btn')) {
+        const dishId = e.target.getAttribute('data-id'); // Get dish ID
+        const dishRef = ref(database, 'menu/' + dishId);
+
+        // Fetch dish data from Firebase
+        get(dishRef).then(snapshot => {
+            const dish = snapshot.val();
+            if (dish) {
+                // Populate the modal form with the dish details
+                document.getElementById('dish-name').value = dish.DishName;
+                categorySelect.value = dish.Category;
+                document.getElementById('price').value = dish.Price;
+                document.getElementById('image-url').value = dish.ImageURL;
+
+                // Store the dish ID being edited
+                editingDishId = dishId;
+
+                // Show the modal
+                addDishModal.show();
+            } else {
+                console.error("Dish not found in Firebase.");
+            }
+        }).catch(error => console.error("Error fetching dish data:", error));
     }
 });
+menuTableBody.addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-btn')) {
+        dishToDeleteId = e.target.getAttribute('data-id'); // Get dish ID
+        console.log('Dish to delete ID:', dishToDeleteId); // Debugging log
+
+        // Show the confirmation modal
+        const modalElement = document.getElementById('deleteConfirmationModal');
+        const deleteConfirmationModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        deleteConfirmationModal.show();
+    }
+});
+
 
 // Confirm deletion
 document.getElementById('confirm-delete-btn').addEventListener('click', function () {
