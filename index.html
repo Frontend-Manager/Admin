@@ -69,21 +69,22 @@
         }).catch(error => console.error("Error adding category:", error));
     }
 
-    // Load Menu Items (with optional search query)
-    function loadMenuItems(searchQuery = '') {
-        const menuRef = ref(database, 'menu');
-        get(menuRef).then(snapshot => {
+  // Load Menu Items with Search
+function loadMenuItems(searchQuery = '') {
+    const menuRef = ref(database, 'menu');
+    get(menuRef)
+        .then(snapshot => {
             const menuItems = snapshot.val();
-            menuTableBody.innerHTML = ''; // Clear existing table rows
-            
+            menuTableBody.innerHTML = ''; // Clear the table
+
             if (menuItems) {
                 Object.keys(menuItems).forEach(key => {
                     const item = menuItems[key];
 
-                    // Only display items that match the search query (case-insensitive)
+                    // Match search query (case-insensitive)
                     if (item.DishName.toLowerCase().includes(searchQuery.toLowerCase())) {
                         const row = document.createElement('tr');
-                        row.innerHTML = ` 
+                        row.innerHTML = `
                             <td>${item.DishName}</td>
                             <td>${item.Category}</td>
                             <td>₹${item.Price}</td>
@@ -97,14 +98,19 @@
                     }
                 });
             }
-        }).catch(error => console.error("Error loading menu items:", error));
-    }
+        })
+        .catch(error => console.error("Error loading menu items:", error));
+}
 
-    // Search Menu Items based on input from search bar
-    function searchMenuItems() {
-        const searchQuery = document.getElementById('search-bar').value;
-        loadMenuItems(searchQuery);  // Reload menu items with the search query
-    }
+// Search Menu Items
+function searchMenuItems() {
+    const searchQuery = document.getElementById('search-bar').value.trim();
+    loadMenuItems(searchQuery); // Pass the query to the loader
+}
+
+// Attach Search Event Listener
+document.getElementById('search-bar').addEventListener('keyup', searchMenuItems);
+
 
     // Add or Edit Dish
     addDishForm.addEventListener('submit', function(e) {
